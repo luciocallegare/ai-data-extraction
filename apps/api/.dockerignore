@@ -1,0 +1,7 @@
+node_modules
+dist
+test
+eval
+.env
+.env.local
+*.log
