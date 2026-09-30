@@ -1,0 +1,52 @@
+[
+  {
+    "id": "email-1",
+    "input": "Contact john@example.com for details. Visit https://example.com for more info.",
+    "expected": { "emails": ["john@example.com"], "urls": ["https://example.com"] }
+  },
+  {
+    "id": "email-2",
+    "input": "Reach out to jane.doe@company.org or support@help.io. Our site is https://help.io",
+    "expected": { "emails": ["jane.doe@company.org", "support@help.io"], "urls": ["https://help.io"] }
+  },
+  {
+    "id": "invoice-1",
+    "input": "Invoice total is $1,250.00 due by 03/15/2026. Contact billing@acme.com",
+    "expected": { "amounts": ["$1,250.00"], "dates": ["03/15/2026"], "emails": ["billing@acme.com"] }
+  },
+  {
+    "id": "invoice-2",
+    "input": "Payment of $99.99 received on 01/05/2026. Receipt sent to customer@store.com",
+    "expected": { "amounts": ["$99.99"], "dates": ["01/05/2026"], "emails": ["customer@store.com"] }
+  },
+  {
+    "id": "job-1",
+    "input": "Senior Engineer role. Apply at careers@techcorp.com. Salary $150,000. Start date 06/01/2026.",
+    "expected": { "emails": ["careers@techcorp.com"], "amounts": ["$150,000"], "dates": ["06/01/2026"] }
+  },
+  {
+    "id": "job-2",
+    "input": "Product Manager opening. Contact talent@startup.io. Compensation $120,000. Deadline 04/30/2026.",
+    "expected": { "emails": ["talent@startup.io"], "amounts": ["$120,000"], "dates": ["04/30/2026"] }
+  },
+  {
+    "id": "support-1",
+    "input": "My order #12345 hasn't arrived. Please help. Email me at angry@customer.com",
+    "expected": { "emails": ["angry@customer.com"] }
+  },
+  {
+    "id": "support-2",
+    "input": "Refund request for $49.99 purchase on 02/14/2026. Contact refunds@shop.com",
+    "expected": { "amounts": ["$49.99"], "dates": ["02/14/2026"], "emails": ["refunds@shop.com"] }
+  },
+  {
+    "id": "meeting-1",
+    "input": "Meeting scheduled for 07/20/2026 at 2pm. Join via https://meet.example.com/abc",
+    "expected": { "dates": ["07/20/2026"], "urls": ["https://meet.example.com/abc"] }
+  },
+  {
+    "id": "meeting-2",
+    "input": "Call on 11/03/2026. Dial +1 555 123 4567. Agenda at https://docs.example.com",
+    "expected": { "dates": ["11/03/2026"], "phones": ["+1 555 123 4567"], "urls": ["https://docs.example.com"] }
+  }
+]

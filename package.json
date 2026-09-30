@@ -8,5 +8,8 @@
     "dev:web": "npm --prefix apps/web run dev",
     "build": "npm --prefix apps/api run build && npm --prefix apps/web run build",
     "test": "npm --prefix apps/api test"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3"
   }
 }

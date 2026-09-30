@@ -7,6 +7,7 @@ import dbPlugin from './plugins/db.js';
 import authPlugin from './plugins/auth.js';
 import rateLimitPlugin from './plugins/rateLimit.js';
 import authRoutes from './routes/auth.js';
+import extractionRoutes from './routes/extractions.js';
 
 export function buildApp() {
   const app = Fastify({ logger: false });
@@ -30,6 +31,7 @@ export function buildApp() {
   app.register(rateLimitPlugin);
 
   app.register(authRoutes);
+  app.register(extractionRoutes);
 
   app.get('/health', async () => ({ status: 'ok', provider: config.LLM_PROVIDER }));
 

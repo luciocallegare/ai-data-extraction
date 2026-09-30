@@ -13,13 +13,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
-    "fastify-plugin": "^5.0.0",
     "@fastify/cookie": "^11.0.0",
     "@fastify/cors": "^10.0.0",
     "@fastify/jwt": "^9.0.0",
     "@fastify/rate-limit": "^10.0.0",
     "argon2": "^0.41.0",
     "fastify": "^5.0.0",
+    "fastify-plugin": "^5.0.0",
     "mongoose": "^8.0.0",
     "openai": "^4.0.0",
     "pino": "^9.0.0",
@@ -27,7 +27,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^20.19.43",
     "mongodb-memory-server": "^10.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0",
