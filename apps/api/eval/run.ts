@@ -10,7 +10,7 @@ interface GoldenCase {
   expected: Record<string, unknown>;
 }
 
-function main() {
+async function main() {
   const goldenPath = resolve(process.cwd(), 'eval', 'golden.json');
   const cases: GoldenCase[] = JSON.parse(readFileSync(goldenPath, 'utf-8'));
 
