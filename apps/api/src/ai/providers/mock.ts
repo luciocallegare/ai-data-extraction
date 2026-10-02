@@ -1,4 +1,4 @@
-import type { LLMProvider, LLMRequest, LLMResult } from '../types.js';
+import type { LLMProvider, LLMRequest, LLMResult, LLMStreamChunk } from '../types.js';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -53,6 +53,23 @@ export class MockProvider implements LLMProvider {
         completionTokens: Math.ceil(content.length / 4),
       },
       model: request.model,
+    };
+  }
+
+  async *stream(request: LLMRequest): AsyncIterable<LLMStreamChunk> {
+    const result = await this.complete(request);
+    const words = result.content.split(' ');
+    let accumulated = '';
+    for (const word of words) {
+      accumulated += word + ' ';
+      yield { content: accumulated, done: false };
+      await sleep(20);
+    }
+    yield {
+      content: result.content,
+      done: true,
+      usage: result.usage,
+      model: result.model,
     };
   }
 }

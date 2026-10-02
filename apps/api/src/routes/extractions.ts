@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { runExtraction } from '../ai/service.js';
+import { runExtractionStream } from '../ai/streaming.js';
 import { Extraction } from '../models/Extraction.js';
 
 const createSchema = z.object({
@@ -57,5 +58,29 @@ export default async function extractionRoutes(app: FastifyInstance) {
     const result = await Extraction.deleteOne({ _id: id, userId });
     if (result.deletedCount === 0) return reply.code(404).send({ error: 'Extraction not found' });
     return reply.code(204).send();
+  });
+
+  app.post('/extractions/stream', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { text } = createSchema.parse(request.body);
+    const userId = request.user.sub;
+
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+
+    try {
+      for await (const chunk of runExtractionStream(userId, text)) {
+        const data = JSON.stringify(chunk);
+        reply.raw.write(`data: ${data}\n\n`);
+      }
+      reply.raw.write('data: [DONE]\n\n');
+    } catch (err) {
+      const errorData = JSON.stringify({ error: (err as Error).message });
+      reply.raw.write(`data: ${errorData}\n\n`);
+    } finally {
+      reply.raw.end();
+    }
   });
 }

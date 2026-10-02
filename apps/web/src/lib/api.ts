@@ -25,6 +25,12 @@ export interface Extraction extends ExtractionResult {
   parentExtractionId: string | null;
 }
 
+export interface StreamChunk {
+  content: string;
+  done: boolean;
+  error?: string;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const hasBody = options.body !== undefined
   const res = await fetch(`${API_URL}${path}`, {
@@ -56,6 +62,43 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ text }),
     }),
+
+  createExtractionStream: (text: string, onChunk: (chunk: StreamChunk) => void, onDone: () => void) => {
+    return fetch(`${API_URL}/extractions/stream`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    }).then(async (res) => {
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+      const reader = res.body?.getReader();
+      if (!reader) return;
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') {
+              onDone();
+              return;
+            }
+            try {
+              const chunk = JSON.parse(data);
+              onChunk(chunk);
+            } catch {
+              // ignore parse errors
+            }
+          }
+        }
+      }
+    });
+  },
 
   refineExtraction: (id: string, question: string) =>
     request<Extraction & { id: string; cached: boolean }>(`/extractions/${id}/refine`, {

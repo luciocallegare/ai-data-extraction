@@ -13,7 +13,14 @@ export interface LLMResult {
 
 export interface LLMProvider {
   complete(request: LLMRequest): Promise<LLMResult>;
-  stream?(request: LLMRequest): AsyncIterable<string>;
+  stream?(request: LLMRequest): AsyncIterable<LLMStreamChunk>;
+}
+
+export interface LLMStreamChunk {
+  content: string;
+  done: boolean;
+  usage?: { promptTokens: number; completionTokens: number };
+  model?: string;
 }
 
 export interface ExtractionResult {

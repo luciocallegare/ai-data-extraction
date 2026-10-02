@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { LLMProvider, LLMRequest, LLMResult } from '../types.js';
+import type { LLMProvider, LLMRequest, LLMResult, LLMStreamChunk } from '../types.js';
 
 export class OpenAIProvider implements LLMProvider {
   private client: OpenAI;
@@ -26,7 +26,7 @@ export class OpenAIProvider implements LLMProvider {
     };
   }
 
-  async *stream(request: LLMRequest): AsyncIterable<string> {
+  async *stream(request: LLMRequest): AsyncIterable<LLMStreamChunk> {
     const stream = await this.client.chat.completions.create({
       model: request.model,
       messages: request.messages,
@@ -35,9 +35,19 @@ export class OpenAIProvider implements LLMProvider {
       stream: true,
     });
 
+    let accumulated = '';
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta?.content;
-      if (delta) yield delta;
+      if (delta) {
+        accumulated += delta;
+        yield { content: accumulated, done: false };
+      }
     }
+    yield {
+      content: accumulated,
+      done: true,
+      usage: { promptTokens: 0, completionTokens: 0 },
+      model: request.model,
+    };
   }
 }
