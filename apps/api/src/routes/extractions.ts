@@ -35,13 +35,20 @@ export default async function extractionRoutes(app: FastifyInstance) {
     return reply.code(201).send(result);
   });
 
+  function flattenExtraction(doc: any) {
+  if (!doc) return doc;
+  const obj = doc.toObject ? doc.toObject() : doc;
+  const { result, ...rest } = obj;
+  return { ...rest, ...(result || {}) };
+}
+
   app.get('/extractions', { preHandler: [app.authenticate] }, async (request) => {
     const userId = request.user.sub;
     const extractions = await Extraction.find({ userId })
       .sort({ createdAt: -1 })
       .limit(50)
       .select('-inputText');
-    return { extractions };
+    return { extractions: extractions.map(flattenExtraction) };
   });
 
   app.get('/extractions/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
@@ -49,7 +56,7 @@ export default async function extractionRoutes(app: FastifyInstance) {
     const userId = request.user.sub;
     const extraction = await Extraction.findOne({ _id: id, userId });
     if (!extraction) return reply.code(404).send({ error: 'Extraction not found' });
-    return extraction;
+    return flattenExtraction(extraction);
   });
 
   app.delete('/extractions/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
@@ -60,14 +67,27 @@ export default async function extractionRoutes(app: FastifyInstance) {
     return reply.code(204).send();
   });
 
+  app.options('/extractions/stream', async (request, reply) => {
+    const origin = request.headers.origin ?? '*';
+    reply.header('Access-Control-Allow-Origin', origin);
+    reply.header('Access-Control-Allow-Credentials', 'true');
+    reply.header('Access-Control-Allow-Headers', 'Content-Type');
+    reply.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    return reply.code(204).send();
+  });
+
   app.post('/extractions/stream', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { text } = createSchema.parse(request.body);
     const userId = request.user.sub;
 
+    const origin = request.headers.origin ?? '*';
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Headers': 'Content-Type',
     });
 
     try {

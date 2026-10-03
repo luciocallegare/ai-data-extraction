@@ -82,17 +82,17 @@ export const api = {
         const lines = buffer.split('\n\n');
         buffer = lines.pop() ?? '';
         for (const line of lines) {
+          if (!line) continue;
           if (line.startsWith('data: ')) {
-            const data = line.slice(6);
+            const data = line.slice(6).trim();
+            if (!data) continue;
             if (data === '[DONE]') {
               onDone();
               return;
             }
-            try {
-              const chunk = JSON.parse(data);
+            const chunk = JSON.parse(data);
+            if (chunk && typeof chunk === 'object') {
               onChunk(chunk);
-            } catch {
-              // ignore parse errors
             }
           }
         }

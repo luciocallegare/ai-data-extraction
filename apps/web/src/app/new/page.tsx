@@ -23,6 +23,7 @@ export default function NewExtractionPage() {
 
     try {
       await api.createExtractionStream(text.trim(), (chunk: StreamChunk) => {
+        if (!chunk || typeof chunk !== 'object') return;
         if (chunk.error) {
           setError(chunk.error);
           setStatus('error');
@@ -30,14 +31,23 @@ export default function NewExtractionPage() {
         }
         if (chunk.done) {
           try {
-            const result = JSON.parse(chunk.content);
+            const content = chunk.content;
+            if (!content) {
+              setError('Empty response from server');
+              setStatus('error');
+              return;
+            }
+            const result = JSON.parse(content);
             router.push(`/extractions/${result.id}`);
           } catch {
             setError('Invalid response from server');
             setStatus('error');
           }
         } else {
-          setStreamedContent(chunk.content);
+          const content = chunk.content;
+          if (content) {
+            setStreamedContent(content);
+          }
         }
       }, () => {
         // onDone - handled in chunk.done

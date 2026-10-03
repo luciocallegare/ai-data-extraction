@@ -1,10 +1,20 @@
 import mongoose from 'mongoose';
 
+const extractionResultSchema = new mongoose.Schema(
+  {
+    data: { type: mongoose.Schema.Types.Mixed, default: {} },
+    confidence: { type: mongoose.Schema.Types.Mixed, default: {} },
+    unknownFields: { type: [String], default: [] },
+    warnings: { type: [String], default: [] },
+  },
+  { _id: false },
+);
+
 const extractionSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     inputText: { type: String, required: true },
-    result: { type: mongoose.Schema.Types.Mixed, required: true },
+    result: { type: extractionResultSchema, required: true, default: {} },
     promptVersion: { type: String, required: true },
     model: { type: String, required: true },
     provider: { type: String, required: true },

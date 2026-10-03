@@ -39,7 +39,7 @@ export default function ExtractionDetailPage() {
   };
 
   const handleCopy = async () => {
-    if (!extraction) return;
+    if (!extraction || !extraction.data) return;
     await navigator.clipboard.writeText(JSON.stringify(extraction.data, null, 2));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -70,6 +70,21 @@ export default function ExtractionDetailPage() {
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
             Loading...
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Handle failed extractions where result doesn't have the expected structure
+  if (!extraction.data || typeof extraction.data !== 'object') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {extraction.toString()}
+        <Nav />
+        <main className="mx-auto max-w-2xl px-4 py-8">
+          <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Extraction failed or has no data.
           </div>
         </main>
       </div>

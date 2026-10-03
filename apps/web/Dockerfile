@@ -8,7 +8,11 @@ RUN npm ci
 FROM node:20-bookworm AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY package.json package-lock.json ./
+COPY src ./src
+COPY next.config.ts ./
+COPY tsconfig.json ./
+COPY postcss.config.mjs ./
 RUN npm run build
 
 FROM node:20-bookworm AS runtime

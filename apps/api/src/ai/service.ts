@@ -1,7 +1,7 @@
 import type { LLMResult } from './types.js';
 import { loadPromptTemplate, buildMessages } from './promptBuilder.js';
 import { processExtraction } from './postProcessor.js';
-import { createProvider } from './providers/index.js';
+import { createProvider, getProviderModel } from './providers/index.js';
 import { cacheKey, getCached, setCached } from '../lib/cache.js';
 import { sanitizeInput, truncateInput } from '../lib/sanitize.js';
 import { precheckQuota, recordUsage } from '../lib/quota.js';
@@ -19,6 +19,11 @@ export interface ExtractionResponse {
   unknownFields: string[];
   warnings: string[];
   cached: boolean;
+  model: string;
+  provider: string;
+  tokensIn: number;
+  tokensOut: number;
+  latencyMs: number;
 }
 
 export async function runExtraction(
@@ -29,25 +34,28 @@ export async function runExtraction(
   const inputText = truncateInput(sanitizeInput(rawText), MAX_INPUT_LENGTH);
   const template = loadPromptTemplate(PROMPT_VERSION);
   const messages = buildMessages(template, inputText);
+  const providerModel = getProviderModel();
 
-  const key = cacheKey(inputText, template.version, template.model);
+  const CACHE_VERSION = 'v2'; // increment when token calculation changes
+  const key = cacheKey(inputText, template.version, providerModel) + ':' + CACHE_VERSION;
   const cached = getCached(key);
   if (cached) {
+    const metadata = cached.metadata;
     const extraction = await Extraction.create({
       userId,
       inputText,
-      result: cached,
+      result: cached.result,
       promptVersion: template.version,
-      model: template.model,
-      provider: config.LLM_PROVIDER,
-      tokensIn: 0,
-      tokensOut: 0,
-      latencyMs: 0,
+      model: metadata.model,
+      provider: metadata.provider,
+      tokensIn: metadata.tokensIn,
+      tokensOut: metadata.tokensOut,
+      latencyMs: metadata.latencyMs,
       status: 'success',
       parentExtractionId,
     });
     logger.info({ extractionId: extraction._id, userId, cached: true }, 'extraction served from cache');
-    return { id: extraction._id.toString(), ...cached, cached: true };
+    return { id: extraction._id.toString(), ...cached.result, cached: true, ...metadata };
   }
 
   const estimatedTokens = Math.ceil(inputText.length / 4) + template.maxTokens;
@@ -61,7 +69,7 @@ export async function runExtraction(
   const provider = createProvider();
   const llmRequest = {
     messages,
-    model: template.model,
+    model: providerModel,
     temperature: template.temperature,
     maxTokens: template.maxTokens,
   };
@@ -96,18 +104,26 @@ export async function runExtraction(
 
   const totalTokens = result.usage.promptTokens + result.usage.completionTokens;
   await recordUsage(userId, totalTokens);
-  setCached(key, processed);
+
+  const metadata = {
+    model: result.model,
+    provider: config.LLM_PROVIDER,
+    tokensIn: result.usage.promptTokens,
+    tokensOut: result.usage.completionTokens,
+    latencyMs,
+  };
+  setCached(key, processed, metadata);
 
   const extraction = await Extraction.create({
     userId,
     inputText,
     result: processed,
     promptVersion: template.version,
-    model: result.model,
-    provider: config.LLM_PROVIDER,
-    tokensIn: result.usage.promptTokens,
-    tokensOut: result.usage.completionTokens,
-    latencyMs,
+    model: metadata.model,
+    provider: metadata.provider,
+    tokensIn: metadata.tokensIn,
+    tokensOut: metadata.tokensOut,
+    latencyMs: metadata.latencyMs,
     status: 'success',
     parentExtractionId,
   });
@@ -117,5 +133,5 @@ export async function runExtraction(
     'extraction complete',
   );
 
-  return { id: extraction._id.toString(), ...processed, cached: false };
+  return { id: extraction._id.toString(), ...processed, cached: false, ...metadata };
 }

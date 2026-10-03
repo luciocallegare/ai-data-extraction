@@ -1,7 +1,7 @@
 import type { LLMStreamChunk } from './types.js';
 import { loadPromptTemplate, buildMessages } from './promptBuilder.js';
 import { processExtraction } from './postProcessor.js';
-import { createProvider } from './providers/index.js';
+import { createProvider, getProviderModel } from './providers/index.js';
 import { cacheKey, getCached, setCached } from '../lib/cache.js';
 import { sanitizeInput, truncateInput } from '../lib/sanitize.js';
 import { precheckQuota, recordUsage } from '../lib/quota.js';
@@ -11,6 +11,7 @@ import { logger } from '../lib/logger.js';
 
 const MAX_INPUT_LENGTH = 10_000;
 const PROMPT_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 
 export async function* runExtractionStream(
   userId: string,
@@ -20,25 +21,27 @@ export async function* runExtractionStream(
   const inputText = truncateInput(sanitizeInput(rawText), MAX_INPUT_LENGTH);
   const template = loadPromptTemplate(PROMPT_VERSION);
   const messages = buildMessages(template, inputText);
+  const providerModel = getProviderModel();
 
-  const key = cacheKey(inputText, template.version, template.model);
+  const key = cacheKey(inputText, template.version, providerModel) + ':' + CACHE_VERSION;
   const cached = getCached(key);
   if (cached) {
+    const metadata = cached.metadata;
     const extraction = await Extraction.create({
       userId,
       inputText,
-      result: cached,
+      result: cached.result,
       promptVersion: template.version,
-      model: template.model,
-      provider: config.LLM_PROVIDER,
-      tokensIn: 0,
-      tokensOut: 0,
-      latencyMs: 0,
+      model: metadata.model,
+      provider: metadata.provider,
+      tokensIn: metadata.tokensIn,
+      tokensOut: metadata.tokensOut,
+      latencyMs: metadata.latencyMs,
       status: 'success',
       parentExtractionId,
     });
     logger.info({ extractionId: extraction._id, userId, cached: true }, 'extraction served from cache');
-    yield { content: JSON.stringify(cached), done: true };
+    yield { content: JSON.stringify({ id: extraction._id.toString(), ...cached.result, cached: true, ...metadata }), done: true };
     return;
   }
 
@@ -53,7 +56,7 @@ export async function* runExtractionStream(
   const provider = createProvider();
   const llmRequest = {
     messages,
-    model: template.model,
+    model: providerModel,
     temperature: template.temperature,
     maxTokens: template.maxTokens,
   };
@@ -63,50 +66,68 @@ export async function* runExtractionStream(
     const processed = await processExtraction(result.content, provider, llmRequest);
     const totalTokens = result.usage.promptTokens + result.usage.completionTokens;
     await recordUsage(userId, totalTokens);
-    setCached(key, processed);
+
+    const metadata = {
+      model: result.model,
+      provider: config.LLM_PROVIDER,
+      tokensIn: result.usage.promptTokens,
+      tokensOut: result.usage.completionTokens,
+      latencyMs: 0,
+    };
+    setCached(key, processed, metadata);
 
     const extraction = await Extraction.create({
       userId,
       inputText,
       result: processed,
       promptVersion: template.version,
-      model: result.model,
-      provider: config.LLM_PROVIDER,
-      tokensIn: result.usage.promptTokens,
-      tokensOut: result.usage.completionTokens,
-      latencyMs: 0,
+      model: metadata.model,
+      provider: metadata.provider,
+      tokensIn: metadata.tokensIn,
+      tokensOut: metadata.tokensOut,
+      latencyMs: metadata.latencyMs,
       status: 'success',
       parentExtractionId,
     });
 
-    yield { content: JSON.stringify({ id: extraction._id.toString(), ...processed, cached: false }), done: true };
+    yield { content: JSON.stringify({ id: extraction._id.toString(), ...processed, cached: false, ...metadata }), done: true };
     return;
   }
 
   let fullContent = '';
+  let finalStreamChunk: LLMStreamChunk | null = null;
   for await (const chunk of provider.stream(llmRequest)) {
     fullContent = chunk.content;
+    finalStreamChunk = chunk;
     yield chunk;
   }
 
   const processed = await processExtraction(fullContent, provider, llmRequest);
-  const totalTokens = processed.data ? 100 : 0;
+  const totalTokens = (finalStreamChunk?.usage?.promptTokens ?? 0) + (finalStreamChunk?.usage?.completionTokens ?? 0);
   await recordUsage(userId, totalTokens);
-  setCached(key, processed);
+
+  const metadata = {
+    model: providerModel,
+    provider: config.LLM_PROVIDER,
+    tokensIn: finalStreamChunk?.usage?.promptTokens ?? 0,
+    tokensOut: finalStreamChunk?.usage?.completionTokens ?? 0,
+    latencyMs: 0,
+  };
+  setCached(key, processed, metadata);
 
   const extraction = await Extraction.create({
     userId,
     inputText,
     result: processed,
     promptVersion: template.version,
-    model: template.model,
-    provider: config.LLM_PROVIDER,
-    tokensIn: 0,
-    tokensOut: 0,
-    latencyMs: 0,
+    model: metadata.model,
+    provider: metadata.provider,
+    tokensIn: metadata.tokensIn,
+    tokensOut: metadata.tokensOut,
+    latencyMs: metadata.latencyMs,
     status: 'success',
     parentExtractionId,
   });
 
-  yield { content: JSON.stringify({ id: extraction._id.toString(), ...processed, cached: false }), done: true };
+  yield { content: JSON.stringify({ id: extraction._id.toString(), ...processed, cached: false, ...metadata }), done: true };
 }

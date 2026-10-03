@@ -10,7 +10,10 @@ RUN npm ci
 FROM node:20-bookworm AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY package.json package-lock.json ./
+COPY src ./src
+COPY prompts ./prompts
+COPY tsconfig.json ./
 RUN npm run build
 
 # ---- runtime ----
@@ -19,7 +22,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
-COPY prompts ./prompts
+COPY --from=build /app/prompts ./prompts
 USER node
 EXPOSE 4000
 CMD ["node", "dist/index.js"]
