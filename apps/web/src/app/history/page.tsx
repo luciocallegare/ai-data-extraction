@@ -54,7 +54,7 @@ export default function HistoryPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900">
-                      {ex.status === 'success' ? `${Object.keys(ex.data).length} fields` : 'Failed'}
+                      {ex.status === 'success' && ex.data ? `${Object.keys(ex.data).length} fields` : ex.status === 'success' ? '0 fields' : 'Failed'}
                     </span>
                     <span className="text-xs text-gray-500">
                       {new Date(ex.createdAt).toLocaleDateString()}

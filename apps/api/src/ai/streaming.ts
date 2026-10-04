@@ -96,11 +96,13 @@ export async function* runExtractionStream(
 
   let fullContent = '';
   let finalStreamChunk: LLMStreamChunk | null = null;
+  const streamStart = Date.now();
   for await (const chunk of provider.stream(llmRequest)) {
     fullContent = chunk.content;
     finalStreamChunk = chunk;
     yield chunk;
   }
+  const latencyMs = Date.now() - streamStart;
 
   const processed = await processExtraction(fullContent, provider, llmRequest);
   const totalTokens = (finalStreamChunk?.usage?.promptTokens ?? 0) + (finalStreamChunk?.usage?.completionTokens ?? 0);
@@ -111,7 +113,7 @@ export async function* runExtractionStream(
     provider: config.LLM_PROVIDER,
     tokensIn: finalStreamChunk?.usage?.promptTokens ?? 0,
     tokensOut: finalStreamChunk?.usage?.completionTokens ?? 0,
-    latencyMs: 0,
+    latencyMs,
   };
   setCached(key, processed, metadata);
 
