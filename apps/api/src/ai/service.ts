@@ -1,4 +1,4 @@
-import type { LLMResult } from './types.js';
+import type { LLMResult, FieldConfidence } from './types.js';
 import { loadPromptTemplate, buildMessages } from './promptBuilder.js';
 import { processExtraction } from './postProcessor.js';
 import { createProvider, getProviderModel } from './providers/index.js';
@@ -15,7 +15,7 @@ const PROMPT_VERSION = 'v1';
 export interface ExtractionResponse {
   id: string;
   data: Record<string, unknown>;
-  confidence: Record<string, number>;
+  confidence: Record<string, { status: string; signals: string[]; score: number }>;
   unknownFields: string[];
   warnings: string[];
   cached: boolean;

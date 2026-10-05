@@ -157,7 +157,7 @@ export default function ExtractionDetailPage() {
                         )}
                       </td>
                       <td className="px-4 py-2 text-sm">
-                        <ConfidenceBadge score={extraction.confidence[key] ?? 0} />
+                        <ConfidenceBadge confidence={extraction.confidence[key] ?? 0} />
                       </td>
                     </tr>
                   );

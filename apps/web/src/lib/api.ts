@@ -5,9 +5,15 @@ export interface AuthResponse {
   email: string;
 }
 
+export interface FieldConfidence {
+  status: 'VERIFIED' | 'UNCERTAIN' | 'NOT_FOUND';
+  signals: string[];
+  score: number; // 0-100
+}
+
 export interface ExtractionResult {
   data: Record<string, unknown>;
-  confidence: Record<string, number>;
+  confidence: Record<string, FieldConfidence>;
   unknownFields: string[];
   warnings: string[];
 }

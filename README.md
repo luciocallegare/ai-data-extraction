@@ -139,7 +139,11 @@ npm test          # runs API tests
 
 2. **Provider abstraction** — `LLMProvider` interface with `complete()` + optional `stream()`. Factory picks via `LLM_PROVIDER` env. `MockProvider` = deterministic regex extraction + simulated latency + configurable error rate.
 
-3. **Post-processor** — Strips code fences → extracts JSON → Zod validates → **retries once with repair prompt** on failure → normalizes → returns `{ data, confidence, unknownFields, warnings }`. Confidence heuristic: present=0.9, coerced=0.7, null=0.2 (unknown).
+3. **Post-processor** — Strips code fences → extracts JSON → Zod validates → **retries once with repair prompt** on failure → normalizes → returns `{ data, confidence, unknownFields, warnings }`. Confidence is now a **per-field object** with:
+   - `status`: `"VERIFIED"` | `"UNCERTAIN"` | `"NOT_FOUND"` (derived from 0-100 heuristic score)
+   - `score`: 0-100 heuristic confidence score
+   - `signals`: array of evidence strings (e.g., `["verbatim_match", "email_format", "clean_format"]`)
+   - Heuristic scoring: base 35 + verbatim match (25) + regex patterns (20-30 each) + length (10-15) + clean format (10). Thresholds: ≥60=VERIFIED, ≥30=UNCERTAIN, else NOT_FOUND.
 
 4. **Safety** — Max input 10k chars, control char stripping, delimiters + instruction hierarchy in system prompt, strict output schema, no tools, never render LLM output as HTML.
 
@@ -152,7 +156,7 @@ npm test          # runs API tests
 | **Auth** | Cookie only | Could add `Authorization: Bearer` header support for non-browser clients |
 | **Schema** | Generic `record<string, ...>` | Per-domain schemas (invoice, job, email) for stricter validation |
 | **Streaming** | Bonus only | Could be core with SSE + React Suspense |
-| **Eval** | Field-level accuracy on golden set | Could add semantic similarity (embedding-based) for fuzzy matching |
+| **Eval** | Field-level accuracy on golden set | Could add semantic similarity (embedding-based) for fuzzy matching; **logprobs-based confidence** — use model token logprobs for calibrated per-field confidence; **self-consistency consensus** — run extraction multiple times at temp > 0 and measure agreement rate |
 
 **Known limitations:**
 - MockProvider extracts only emails, URLs, amounts, dates, phones — not domain-specific fields

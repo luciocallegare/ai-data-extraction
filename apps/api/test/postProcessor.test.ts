@@ -9,7 +9,10 @@ const mockProvider: LLMProvider = {
 };
 
 const baseRequest: LLMRequest = {
-  messages: [{ role: 'user', content: 'test' }],
+  messages: [
+    { role: 'user', content: 'Contact John at john@example.com or call 555-1234. His age is 30.' },
+    { role: 'assistant', content: '{"name": "John", "age": 30, "email": "john@example.com", "phone": "555-1234"}' }
+  ],
   model: 'mock',
   temperature: 0.1,
   maxTokens: 1024,
@@ -19,7 +22,8 @@ describe('processExtraction', () => {
   it('parses valid JSON output', async () => {
     const result = await processExtraction('{"name": "John", "age": 30}', mockProvider, baseRequest);
     expect(result.data).toEqual({ name: 'John', age: 30 });
-    expect(result.confidence.name).toBe(0.9);
+    expect(result.confidence.name.status).toBe('VERIFIED');
+    expect(result.confidence.name.score).toBeGreaterThan(0);
     expect(result.unknownFields).toEqual([]);
     expect(result.warnings).toEqual([]);
   });
@@ -37,7 +41,7 @@ describe('processExtraction', () => {
   it('marks null fields as unknown with low confidence', async () => {
     const result = await processExtraction('{"name": "John", "phone": null}', mockProvider, baseRequest);
     expect(result.data).toEqual({ name: 'John', phone: null });
-    expect(result.confidence.phone).toBe(0.2);
+    expect(result.confidence.phone.status).toBe('NOT_FOUND');
     expect(result.unknownFields).toContain('phone');
   });
 
