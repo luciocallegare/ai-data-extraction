@@ -11,7 +11,7 @@ flowchart TB
     end
 
     subgraph Web["Next.js (Vercel / Docker)"]
-        Pages[Pages: /login, /new, /history, /extractions/[id]]
+        Pages["Pages: /login, /new, /history, /extractions/[id]"]
         APIClient[api.ts client]
     end
 
