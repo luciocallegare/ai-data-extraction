@@ -102,13 +102,13 @@ export default function ExtractionDetailPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+              className="cursor-pointer rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
             >
               {copied ? 'Copied!' : 'Copy JSON'}
             </button>
             <button
               onClick={handleDelete}
-              className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+              className="cursor-pointer rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
             >
               Delete
             </button>

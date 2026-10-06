@@ -33,7 +33,7 @@ export default function Nav() {
           </Link>
           <button
             onClick={handleLogout}
-            className="ml-2 rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+            className="ml-2 cursor-pointer rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
           >
             Logout
           </button>

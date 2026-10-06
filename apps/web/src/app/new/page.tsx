@@ -101,7 +101,7 @@ export default function NewExtractionPage() {
           <button
             type="submit"
             disabled={!text.trim() || status === 'streaming'}
-            className="mt-4 rounded bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="mt-4 cursor-pointer rounded bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {status === 'streaming' ? 'Streaming...' : 'Extract'}
           </button>
